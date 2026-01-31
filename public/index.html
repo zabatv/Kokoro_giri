@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Multiplayer Game</title>
   <link rel="stylesheet" href="style.css" />
@@ -17,14 +17,13 @@
     </button>
   </div>
 
-  <!-- Экран загрузки -->
+  <!-- Экран загрузки (без текста) -->
   <div id="loading-screen" class="screen">
     <img src="loading/image.gif" alt="Loading..." class="loading-gif" />
-    <p>Loading...</p>
   </div>
 
   <!-- Игровой экран -->
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
 
   <!-- Подключение Socket.IO и клиентского скрипта -->
   <script src="/socket.io/socket.io.js"></script>
