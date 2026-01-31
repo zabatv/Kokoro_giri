@@ -86,11 +86,17 @@ body {
   align-items: center;
   padding-top: 20px;
   background-image: url('border/image.gif');
-  background-size: cover;
+  background-size: 100% 100%; /* Растягиваем по ширине и высоте */
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
   z-index: 10;
+
+  /* Попробуем отключить сглаживание для DOM-элементов */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .inventory-panel.left {
@@ -131,9 +137,9 @@ body {
   z-index: 0;
   background-color: white;
 
-  /* Отключаем сглаживание для резких пикселей */
-  image-rendering: -moz-crisp-edges; /* Firefox */
-  image-rendering: -webkit-crisp-edges; /* Safari */
-  image-rendering: pixelated; /* Chrome, Edge */
-  image-rendering: crisp-edges; /* IE */
+  /* Для canvas — уже установлено */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
