@@ -7,14 +7,13 @@ const playBtn = document.getElementById('play-btn');
 
 let playerId;
 let players = {};
-let role = null; // 'player1' или 'player2'
+let role = null;
 
 // === СТАРТЫЙ ЭКРАН ===
 playBtn.addEventListener('click', () => {
   startScreen.classList.remove('active');
   loadingScreen.classList.add('active');
 
-  // Отправляем запрос на присоединение
   const socket = io();
   socket.emit('requestToPlay');
 
@@ -44,7 +43,10 @@ function initGame(socket) {
   });
 
   socket.on('playerMoved', (movedPlayer) => {
-    players[movedPlayer.id] = movedPlayer;
+    // Обновляем только позицию других игроков, если мы не отправляли последнее движение
+    if (movedPlayer.id !== playerId) {
+      players[movedPlayer.id] = movedPlayer;
+    }
     draw();
   });
 
@@ -53,18 +55,42 @@ function initGame(socket) {
   window.addEventListener('keydown', (e) => keys[e.key] = true);
   window.addEventListener('keyup', (e) => keys[e.key] = false);
 
+  let lastSentTime = 0;
+  const sendInterval = 1000 / 30; // 30 раз в секунду
+
   function update() {
     if (!players[playerId]) return;
 
     const speed = 5;
     const p = players[playerId];
 
-    if (keys['ArrowUp'] && p.y > 0) p.y -= speed;
-    if (keys['ArrowDown'] && p.y < gameCanvas.height - 20) p.y += speed;
-    if (keys['ArrowLeft'] && p.x > 0) p.x -= speed;
-    if (keys['ArrowRight'] && p.x < gameCanvas.width - 20) p.x += speed;
+    let moved = false;
 
-    socket.emit('playerMove', { x: p.x, y: p.y, id: playerId });
+    if (keys['ArrowUp'] && p.y > 0) {
+      p.y -= speed;
+      moved = true;
+    }
+    if (keys['ArrowDown'] && p.y < gameCanvas.height - 20) {
+      p.y += speed;
+      moved = true;
+    }
+    if (keys['ArrowLeft'] && p.x > 0) {
+      p.x -= speed;
+      moved = true;
+    }
+    if (keys['ArrowRight'] && p.x < gameCanvas.width - 20) {
+      p.x += speed;
+      moved = true;
+    }
+
+    // Отправляем позицию на сервер с интервалом
+    const now = Date.now();
+    if (moved && now - lastSentTime >= sendInterval) {
+      socket.emit('playerMove', { x: p.x, y: p.y, id: playerId });
+      lastSentTime = now;
+    }
+
+    draw();
   }
 
   function draw() {
@@ -76,11 +102,5 @@ function initGame(socket) {
     }
   }
 
-  function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-  }
-
-  gameLoop();
+  setInterval(update, 1000 / 60); // 60 FPS для отрисовки
 }
