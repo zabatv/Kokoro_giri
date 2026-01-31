@@ -24,6 +24,7 @@ const playBtn = document.getElementById('play-btn');
 let playerId;
 let players = {};
 let role = null;
+let roomId = null;
 
 // === Matter.js ===
 let engine;
@@ -32,7 +33,6 @@ let world;
 let player1Item;
 let player2Item;
 let mouseConstraint;
-let roomId = null;
 
 // === СТАРТЫЙ ЭКРАН ===
 playBtn.addEventListener('click', () => {
@@ -42,17 +42,13 @@ playBtn.addEventListener('click', () => {
   const socket = io();
   socket.emit('requestToPlay');
 
-  socket.on('startGame', () => {
+  socket.on('startGame', (data) => {
+    role = data.role;
+    roomId = data.roomId;
     loadingScreen.classList.remove('active');
     gameArea.style.display = 'flex';
     gameCanvas.style.display = 'block';
     initGame(socket);
-  });
-
-  socket.on('setPlayerData', (data) => {
-    playerId = data.id;
-    role = data.role;
-    console.log('Вы —', role);
   });
 
   socket.on('opponentDisconnected', () => {
@@ -62,17 +58,10 @@ playBtn.addEventListener('click', () => {
 
   // Получаем начальные позиции предметов
   socket.on('initialItems', (data) => {
-    if (role === 'player1') {
-      Matter.Body.setPosition(player1Item, { x: data.player1Item.x, y: data.player1Item.y });
-      Matter.Body.setAngle(player1Item, data.player1Item.angle);
-      Matter.Body.setPosition(player2Item, { x: data.player2Item.x, y: data.player2Item.y });
-      Matter.Body.setAngle(player2Item, data.player2Item.angle);
-    } else if (role === 'player2') {
-      Matter.Body.setPosition(player1Item, { x: data.player1Item.x, y: data.player1Item.y });
-      Matter.Body.setAngle(player1Item, data.player1Item.angle);
-      Matter.Body.setPosition(player2Item, { x: data.player2Item.x, y: data.player2Item.y });
-      Matter.Body.setAngle(player2Item, data.player2Item.angle);
-    }
+    Matter.Body.setPosition(player1Item, { x: data.player1Item.x, y: data.player1Item.y });
+    Matter.Body.setAngle(player1Item, data.player1Item.angle);
+    Matter.Body.setPosition(player2Item, { x: data.player2Item.x, y: data.player2Item.y });
+    Matter.Body.setAngle(player2Item, data.player2Item.angle);
   });
 
   // Получаем обновления позиции предмета другого игрока
@@ -146,7 +135,7 @@ function initGame(socket) {
 
   World.add(world, [player1Item, player2Item]);
 
-  // === Мышь для перетаскивания своего предмета ===
+  // === Мышь для перетаскивания ===
   const mouse = Mouse.create(gameCanvas);
   mouseConstraint = MouseConstraint.create(engine, {
     mouse: mouse,
@@ -156,17 +145,21 @@ function initGame(socket) {
     }
   });
 
-  // Добавляем ограничение: можно перетаскивать только свой предмет
+  // Добавляем проверку: можно двигать только свой предмет
   mouseConstraint.mouse.element.removeEventListener("mousedown", mouseConstraint.mouse._onMouseDown);
   mouseConstraint.mouse.element.addEventListener("mousedown", function(event) {
     const mousePos = mouseConstraint.mouse.absolute;
     if (role === 'player1') {
       if (Matter.Bounds.contains(player1Item.bounds, mousePos)) {
         mouseConstraint.constraint.body = player1Item;
+      } else {
+        mouseConstraint.constraint.body = null;
       }
     } else if (role === 'player2') {
       if (Matter.Bounds.contains(player2Item.bounds, mousePos)) {
         mouseConstraint.constraint.body = player2Item;
+      } else {
+        mouseConstraint.constraint.body = null;
       }
     }
   });
@@ -179,13 +172,13 @@ function initGame(socket) {
       socket.emit('itemMoved', {
         id: 'player1',
         pos: { x: player1Item.position.x, y: player1Item.position.y, angle: player1Item.angle },
-        roomId: 'room' // TODO: заменить на реальный ID комнаты
+        roomId: roomId
       });
     } else if (role === 'player2') {
       socket.emit('itemMoved', {
         id: 'player2',
         pos: { x: player2Item.position.x, y: player2Item.position.y, angle: player2Item.angle },
-        roomId: 'room' // TODO: заменить на реальный ID комнаты
+        roomId: roomId
       });
     }
   }, 1000 / 30); // 30 раз в секунду
