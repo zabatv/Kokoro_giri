@@ -1,3 +1,11 @@
+/* Глобальное правило для всех изображений */
+img {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -86,25 +94,26 @@ body {
   align-items: center;
   padding-top: 20px;
   background-image: url('border/image.gif');
-  background-size: 100% 100%; /* Растягиваем по ширине и высоте */
+  background-size: 100% 100%; /* Растягиваем фон */
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
   z-index: 10;
 
-  /* Попробуем отключить сглаживание для DOM-элементов */
+  /* Отключаем сглаживание для фона */
   image-rendering: -moz-crisp-edges;
   image-rendering: -webkit-crisp-edges;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
+/* Убрали серую линию */
 .inventory-panel.left {
-  border-right: 2px solid #ccc;
+  /* border-right: 2px solid #ccc; — удалено */
 }
 
 .inventory-panel.right {
-  border-left: 2px solid #ccc;
+  /* border-left: 2px solid #ccc; — удалено */
 }
 
 .inventory-title {
@@ -114,9 +123,11 @@ body {
   text-align: center;
 }
 
+/* Инвентарь теперь вертикальный: 1 колонка, 5 рядов */
 .inventory-items {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr; /* 1 колонка */
+  grid-template-rows: repeat(5, 1fr); /* 5 рядов */
   gap: 10px;
   width: 90%;
 }
