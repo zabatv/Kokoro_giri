@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Multiplayer Game</title>
   <link rel="stylesheet" href="style.css" />
@@ -23,7 +23,33 @@
   </div>
 
   <!-- Игровой экран -->
-  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div id="game-area" class="game-container" style="display: none;">
+    <div class="inventory-panel left">
+      <div class="inventory-title">Your Inventory</div>
+      <div class="inventory-items">
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+      </div>
+    </div>
+
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <div class="inventory-panel right">
+      <div class="inventory-title">Enemy Inventory</div>
+      <div class="inventory-items">
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+        <div class="inventory-item"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- Подключение Socket.IO и клиентского скрипта -->
   <script src="/socket.io/socket.io.js"></script>
