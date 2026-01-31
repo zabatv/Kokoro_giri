@@ -1,73 +1,90 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const startScreen = document.getElementById('start-screen');
+const loadingScreen = document.getElementById('loading-screen');
+const gameCanvas = document.getElementById('gameCanvas');
+const ctx = gameCanvas.getContext('2d');
 
-const socket = io();
+const playBtn = document.getElementById('play-btn');
 
 let playerId;
 let players = {};
 
-// Отслеживание клавиш
-const keys = {};
-document.addEventListener('keydown', (e) => {
-    keys[e.key] = true;
-});
-document.addEventListener('keyup', (e) => {
-    keys[e.key] = false;
-});
+// === СТАРТЫЙ ЭКРАН ===
+playBtn.addEventListener('click', () => {
+  startScreen.classList.remove('active');
+  loadingScreen.classList.add('active');
 
-// Обработка входящих данных
-socket.on('currentPlayers', (currentPlayers) => {
-    players = currentPlayers;
-});
+  // Имитируем загрузку (можно заменить на реальную, если нужно)
+  setTimeout(() => {
+    loadingScreen.classList.remove('active');
+    gameCanvas.style.display = 'block';
 
-socket.on('newPlayer', (newPlayer) => {
-    players[newPlayer.id] = newPlayer;
+    // Запуск игры
+    initGame();
+  }, 3000); // 3 секунды загрузки
 });
 
-socket.on('playerMoved', (movedPlayer) => {
-    players[movedPlayer.id] = movedPlayer;
-});
+// === ИГРОВАЯ ЛОГИКА ===
+function initGame() {
+  const socket = io();
 
-socket.on('playerDisconnected', (disconnectedPlayerId) => {
-    delete players[disconnectedPlayerId];
-});
-
-// Отрисовка игры
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    for (const id in players) {
-        const player = players[id];
-        ctx.fillStyle = player.color;
-        ctx.fillRect(player.x, player.y, 20, 20); // Игроки рисуются квадратами
-    }
-}
-
-// Обновление игрового состояния
-function update() {
-    if (players[playerId]) {
-        const speed = 5;
-
-        if (keys['ArrowUp']) players[playerId].y -= speed;
-        if (keys['ArrowDown']) players[playerId].y += speed;
-        if (keys['ArrowLeft']) players[playerId].x -= speed;
-        if (keys['ArrowRight']) players[playerId].x += speed;
-
-        // Отправка новых координат на сервер
-        socket.emit('playerMove', { x: players[playerId].x, y: players[playerId].y });
-    }
-}
-
-// Инициализация после получения ID игрока
-socket.on('connect', () => {
+  socket.on('connect', () => {
     playerId = socket.id;
-});
+    console.log('Connected as:', playerId);
+  });
 
-// Основной игровой цикл
-function gameLoop() {
+  socket.on('currentPlayers', (currentPlayers) => {
+    players = currentPlayers;
+    draw();
+  });
+
+  socket.on('newPlayer', (newPlayer) => {
+    players[newPlayer.id] = newPlayer;
+    draw();
+  });
+
+  socket.on('playerMoved', (movedPlayer) => {
+    players[movedPlayer.id] = movedPlayer;
+    draw();
+  });
+
+  socket.on('playerDisconnected', (id) => {
+    delete players[id];
+    draw();
+  });
+
+  // Клавиши
+  const keys = {};
+  window.addEventListener('keydown', (e) => keys[e.key] = true);
+  window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+  function update() {
+    if (!players[playerId]) return;
+
+    const speed = 5;
+    const p = players[playerId];
+
+    if (keys['ArrowUp'] && p.y > 0) p.y -= speed;
+    if (keys['ArrowDown'] && p.y < canvas.height - 20) p.y += speed;
+    if (keys['ArrowLeft'] && p.x > 0) p.x -= speed;
+    if (keys['ArrowRight'] && p.x < canvas.width - 20) p.x += speed;
+
+    socket.emit('playerMove', { x: p.x, y: p.y });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const id in players) {
+      const player = players[id];
+      ctx.fillStyle = player.color || '#4CAF50';
+      ctx.fillRect(player.x, player.y, 20, 20);
+    }
+  }
+
+  function gameLoop() {
     update();
     draw();
     requestAnimationFrame(gameLoop);
-}
+  }
 
-gameLoop();
+  gameLoop();
+}
