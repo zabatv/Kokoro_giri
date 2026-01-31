@@ -45,7 +45,6 @@ playBtn.addEventListener('click', () => {
   socket.on('startGame', (data) => {
     role = data.role;
     roomId = data.roomId;
-    console.log("Вы —", role);
     loadingScreen.classList.remove('active');
     gameArea.style.display = 'flex';
     gameCanvas.style.display = 'block';
@@ -59,7 +58,6 @@ playBtn.addEventListener('click', () => {
 
   // Получаем начальные позиции предметов
   socket.on('initialItems', (data) => {
-    console.log("Получены начальные позиции:", data);
     if (role === 'player1') {
       Matter.Body.setPosition(myItem, { x: data.player1Item.x, y: data.player1Item.y });
       Matter.Body.setAngle(myItem, data.player1Item.angle);
@@ -75,7 +73,6 @@ playBtn.addEventListener('click', () => {
 
   // Получаем обновления позиции предмета противника
   socket.on('itemPosition', (data) => {
-    console.log("Получено обновление позиции предмета:", data);
     if (data.id !== role) {
       Matter.Body.setPosition(enemyItem, { x: data.pos.x, y: data.pos.y });
       Matter.Body.setAngle(enemyItem, data.pos.angle);
@@ -131,7 +128,7 @@ function initGame(socket) {
     enemyItem = Bodies.rectangle(
       450, 200, 50, 50,
       {
-        isStatic: true, // Делаем его статичным
+        isStatic: true, // Отключаем физику полностью
         angle: 0,
         render: { sprite: { texture: itemImg.src, xScale: 0.1, yScale: 0.1 } }
       }
@@ -153,7 +150,7 @@ function initGame(socket) {
     enemyItem = Bodies.rectangle(
       150, 200, 50, 50,
       {
-        isStatic: true, // Делаем его статичным
+        isStatic: true, // Отключаем физику полностью
         angle: 0,
         render: { sprite: { texture: itemImg.src, xScale: 0.1, yScale: 0.1 } }
       }
