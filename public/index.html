@@ -1,14 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer Game</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multiplayer Game</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="client.js"></script>
+  <!-- Стартовый экран -->
+  <div id="start-screen" class="screen active">
+    <div class="logo-container">
+      <img src="logo/image.gif" alt="Logo" class="logo" />
+    </div>
+    <button id="play-btn" class="play-btn">
+      <img src="play_button/image.gif" alt="Play" />
+    </button>
+  </div>
+
+  <!-- Экран загрузки -->
+  <div id="loading-screen" class="screen">
+    <img src="loading/image.gif" alt="Loading..." class="loading-gif" />
+    <p>Loading...</p>
+  </div>
+
+  <!-- Игровой экран -->
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+  <!-- Подключение Socket.IO и клиентского скрипта -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
 </body>
 </html>
