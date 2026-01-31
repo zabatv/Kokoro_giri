@@ -64,15 +64,15 @@ function initGame() {
     const p = players[playerId];
 
     if (keys['ArrowUp'] && p.y > 0) p.y -= speed;
-    if (keys['ArrowDown'] && p.y < canvas.height - 20) p.y += speed;
+    if (keys['ArrowDown'] && p.y < gameCanvas.height - 20) p.y += speed;
     if (keys['ArrowLeft'] && p.x > 0) p.x -= speed;
-    if (keys['ArrowRight'] && p.x < canvas.width - 20) p.x += speed;
+    if (keys['ArrowRight'] && p.x < gameCanvas.width - 20) p.x += speed;
 
     socket.emit('playerMove', { x: p.x, y: p.y });
   }
 
   function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height); // Используем gameCanvas
     for (const id in players) {
       const player = players[id];
       ctx.fillStyle = player.color || '#4CAF50';
