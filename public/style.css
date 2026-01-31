@@ -1,9 +1,75 @@
-body {
-    margin: 0;
-    overflow: hidden;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-canvas {
-    display: block;
-    background-color: #f0f0f0;
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #0f0f1a;
+  color: white;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #0a0a1a;
+  transition: opacity 0.5s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.screen.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.logo-container {
+  margin-bottom: 40px;
+}
+
+.logo {
+  width: 300px;
+  height: auto;
+  max-width: 80vw;
+}
+
+.play-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.play-btn img {
+  width: 200px;
+  height: auto;
+  transition: transform 0.3s;
+}
+
+.play-btn:hover img {
+  transform: scale(1.05);
+}
+
+.loading-gif {
+  width: 250px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+#gameCanvas {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
 }
