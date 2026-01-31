@@ -6,7 +6,7 @@
 
 body {
   font-family: 'Segoe UI', sans-serif;
-  background-color: white; /* Белый фон */
+  background-color: white;
   color: black;
   overflow: hidden;
   height: 100vh;
@@ -22,7 +22,7 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: white; /* Белый фон */
+  background-color: white;
   transition: opacity 0.5s;
   opacity: 0;
   pointer-events: none;
@@ -38,9 +38,9 @@ body {
 }
 
 .logo {
-  width: 300px;
+  width: 400px; /* увеличено с 300px */
   height: auto;
-  max-width: 80vw;
+  max-width: 85vw;
 }
 
 .play-btn {
@@ -51,7 +51,7 @@ body {
 }
 
 .play-btn img {
-  width: 200px;
+  width: 220px; /* немного больше */
   height: auto;
   transition: transform 0.3s;
 }
@@ -63,7 +63,7 @@ body {
 .loading-gif {
   width: 250px;
   height: auto;
-  margin-bottom: 20px;
+  margin-left: 20px; /* сдвинуто вправо */
 }
 
 #gameCanvas {
@@ -72,5 +72,7 @@ body {
   top: 0;
   left: 0;
   z-index: -1;
-  background-color: white; /* Фон холста тоже белый */
+  background-color: white;
+  width: 600px;   /* уменьшено */
+  height: 400px;  /* уменьшено */
 }
