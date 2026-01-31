@@ -7,48 +7,44 @@ const playBtn = document.getElementById('play-btn');
 
 let playerId;
 let players = {};
+let role = null; // 'player1' или 'player2'
 
 // === СТАРТЫЙ ЭКРАН ===
 playBtn.addEventListener('click', () => {
   startScreen.classList.remove('active');
   loadingScreen.classList.add('active');
 
-  // Имитируем загрузку (можно заменить на реальную, если нужно)
-  setTimeout(() => {
+  // Отправляем запрос на присоединение
+  const socket = io();
+  socket.emit('requestToPlay');
+
+  socket.on('startGame', () => {
     loadingScreen.classList.remove('active');
     gameCanvas.style.display = 'block';
+    initGame(socket);
+  });
 
-    // Запуск игры
-    initGame();
-  }, 3000); // 3 секунды загрузки
+  socket.on('setPlayerData', (data) => {
+    playerId = data.id;
+    role = data.role;
+    console.log('Вы —', role);
+  });
+
+  socket.on('opponentDisconnected', () => {
+    alert('Противник покинул игру!');
+    window.location.reload();
+  });
 });
 
 // === ИГРОВАЯ ЛОГИКА ===
-function initGame() {
-  const socket = io();
-
-  socket.on('connect', () => {
-    playerId = socket.id;
-    console.log('Connected as:', playerId);
-  });
-
+function initGame(socket) {
   socket.on('currentPlayers', (currentPlayers) => {
     players = currentPlayers;
     draw();
   });
 
-  socket.on('newPlayer', (newPlayer) => {
-    players[newPlayer.id] = newPlayer;
-    draw();
-  });
-
   socket.on('playerMoved', (movedPlayer) => {
     players[movedPlayer.id] = movedPlayer;
-    draw();
-  });
-
-  socket.on('playerDisconnected', (id) => {
-    delete players[id];
     draw();
   });
 
@@ -68,14 +64,14 @@ function initGame() {
     if (keys['ArrowLeft'] && p.x > 0) p.x -= speed;
     if (keys['ArrowRight'] && p.x < gameCanvas.width - 20) p.x += speed;
 
-    socket.emit('playerMove', { x: p.x, y: p.y });
+    socket.emit('playerMove', { x: p.x, y: p.y, id: playerId });
   }
 
   function draw() {
-    ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height); // Используем gameCanvas
+    ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
     for (const id in players) {
       const player = players[id];
-      ctx.fillStyle = player.color || '#4CAF50';
+      ctx.fillStyle = player.color;
       ctx.fillRect(player.x, player.y, 20, 20);
     }
   }
