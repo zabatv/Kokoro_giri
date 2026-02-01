@@ -1,11 +1,4 @@
-/* Глобальное правило для всех изображений */
-img {
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-crisp-edges;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-}
-
+/* Глобальные правила */
 * {
     margin: 0;
     padding: 0;
@@ -23,6 +16,99 @@ body {
     align-items: center;
 }
 
+/* 🔥 МАКСИМАЛЬНАЯ РЕЗКОСТЬ ДЛЯ ВСЕХ ИЗОБРАЖЕНИЙ */
+img,
+svg,
+canvas,
+[role="img"],
+picture > img,
+.inventory-item img,
+.inventory-panel,
+#gameCanvas,
+.icon,
+.item-frame,
+.bg-img {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-crisp-edges;
+    -ms-interpolation-mode: nearest-neighbor;
+
+    /* Улучшаем рендеринг через GPU */
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Общий контейнер игры */
+.game-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Панель инвентаря */
+.inventory-panel {
+    width: 183px;           /* ширина рамки */
+    height: 696px;          /* высота рамки */
+    position: relative;
+    background: url(border/image.gif) no-repeat center center / 100% auto;
+    flex: 0 0 auto;
+    margin: 100px 0;
+}
+
+/* Контейнер для предметов — размещаем внутри рамки */
+.inventory-items {
+    position: absolute;
+    top: 60px;              /* отступ сверху (подстройте под вашу рамку) */
+    left: 16px;             /* отступ слева (подстройте под вашу рамку) */
+    width: 100px;           /* ширина ячейки */
+    height: calc((100px * 5) + (10px * 4)); /* 5 предметов + промежутки */
+    display: grid;
+    grid-template-rows: repeat(5, 1fr);
+    gap: 10px;              /* расстояние между ячейками */
+}
+
+/* Ячейка предмета */
+.inventory-item {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    background: url(item_frame/image.gif) no-repeat center center / 100% auto;
+    border: none;           /* убираем стандартную границу */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Изображение внутри ячейки */
+.inventory-item img {
+    width: 65%;             /* размер предмета относительно ячейки */
+    height: 65%;
+    object-fit: contain;    /* сохраняем пропорции */
+    image-rendering: pixelated; /* максимальная резкость */
+}
+
+/* Кнопка "Play" */
+.play-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    outline: none;
+}
+
+.play-btn img {
+    width: 220px;
+    height: auto;
+    transition: transform 0.3s;
+}
+
+.play-btn:hover img {
+    transform: scale(1.05);
+}
+
+/* Экран загрузки */
 .screen {
     position: fixed;
     top: 0;
@@ -55,84 +141,13 @@ body {
     max-width: 85vw;
 }
 
-.play-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    outline: none;
-}
-
-.play-btn img {
-    width: 220px;
-    height: auto;
-    transition: transform 0.3s;
-}
-
-.play-btn:hover img {
-    transform: scale(1.05);
-}
-
 .loading-gif {
     width: 250px;
     height: auto;
     margin-left: 20px;
 }
 
-.game-container {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
-.inventory-panel {
-    margin: 100px 0px 100px 0px;
-    width: 183px;
-    height: 696px;
-    position: relative;
-    background-image: url(border/image.gif);
-    background-size: 100% auto;
-    background-repeat: no-repeat;
-    background-position: center;
-    min-width: 183px;
-    box-sizing: border-box;
-    flex: 0 0 auto;
-}
-/* Контейнер для предметов — размещаем ВНУТРИ рамки */
-.inventory-items {
-    position: absolute;
-    top: 60px;
-    left: 16px;
-    width: 61px;
-    height: calc((110px * 5) + (10px * 4));
-    display: grid;
-    grid-template-rows: repeat(5, 1fr);
-    gap: 10px;
-}
-
-.inventory-item {
-    width: 100px;
-    height: 100px;
-    position: relative;
-    /* Убираем background-color — вместо него фоновая рамка */
-    background: url(item_frame/image.gif) no-repeat center center / 100% auto;
-    border: none; /* рамка уже в изображении */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-}
-
-/* Изображение внутри ячейки */
-.inventory-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain; /* Сохраняем пропорции и вмещаем в ячейку */
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-crisp-edges;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-}
-
+/* Игровой холст */
 #gameCanvas {
     flex-grow: 1;
     height: 100%;
@@ -140,8 +155,4 @@ body {
     position: relative;
     z-index: 0;
     background-color: white;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-crisp-edges;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
 }
