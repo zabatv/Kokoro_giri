@@ -86,51 +86,40 @@ body {
 }
 
 .inventory-panel {
-    width: 130px;
-    height: 100%;
-    display: flex;
-    flex-direction: row;
-    padding: 100px;
+    /* Размеры под вашу рамку */
+    width: 183px;           /* ширина изображения border/image.gif */
+    height: 696px;          /* высота изображения */
+    position: relative;
     background-image: url(border/image.gif);
-    background-size: 183px 696px;
+    background-size: 100% auto;   /* растягиваем по ширине, высота пропорционально */
     background-repeat: no-repeat;
     background-position: center center;
-    position: relative;
-    z-index: 10;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-crisp-edges;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    align-content: flex-start;
-    justify-content: space-between;
-    align-items: center;
+    /* НЕ используем flex для всего контейнера — лучше абсолютное позиционирование для предметов */
 }
 
-/* Убираем заголовок инвентаря */
-/* .inventory-title { ... } — удален */
-
-/* Инвентарь: 1 колонка, 5 рядов */
+/* Контейнер для предметов — размещаем ВНУТРИ рамки */
 .inventory-items {
+    position: absolute;
+    top: 40px;      /* отступ сверху (под "верхней частью рамки") */
+    left: 30px;     /* отступ слева — чтобы попасть внутрь рамки, а не за неё */
+    width: 61px;    /* ширина одной ячейки */
+    height: calc((61px * 5) + (10px * 4)); /* 5 предметов + 4 промежутка */
     display: grid;
-    grid-template-columns: 1fr; /* Оставить одну колонку */
-    grid-template-rows: repeat(5, 1fr); /* 5 рядов */
-    gap: 10px; /* Расстояние между ячейками */
-    width: 100%; /* Занимает всю ширину родительского контейнера */
-    height: calc((61px * 5) + (10px * 4)); /* Высота для 5 предметов + промежутки */
-    margin-left: 10px; /* Добавляем отступ слева */
-    align-self: flex-start; /* Прижимаем к верхней части */
+    grid-template-rows: repeat(5, 1fr);
+    gap: 10px;
+    /* Без padding/margin — всё управляем через position */
 }
 
 .inventory-item {
-    width: 61px; /* Ширина ячейки */
-    height: 61px; /* Высота ячейки */
+    width: 61px;
+    height: 61px;
     background-color: rgba(200, 200, 200, 0.3);
     border: 1px solid #aaa;
     border-radius: 5px;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden; /* На всякий случай */
+    overflow: hidden;
 }
 
 /* Изображение внутри ячейки */
