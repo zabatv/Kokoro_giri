@@ -114,15 +114,15 @@ body {
     display: grid;
     grid-template-columns: 1fr; /* 1 колонка */
     grid-template-rows: repeat(5, 1fr); /* 5 рядов */
-    gap: 10px;
-    width: 90%;
-    /* Высота контейнера: чтобы уместить 5 ячеек + промежутки */
-    height: calc((61px * 5) + (10px * 4)); /* 5 предметов + 4 промежутка */
+    gap: 5px; /* Уменьшаем промежутки между предметами */
+    width: 100%; /* Занимаем всю доступную ширину */
+    margin-top: -10px; /* Приближаем к верхнему краю (если нужно) */
+    align-self: flex-start; /* Прижимаем к верху */
 }
 
 .inventory-item {
-    width: 61px; /* Указываем ширину */
-    height: 61px; /* Указываем высоту */
+    width: 61px; /* Ширина ячейки */
+    height: 61px; /* Высота ячейки */
     background-color: rgba(200, 200, 200, 0.3);
     border: 1px solid #aaa;
     border-radius: 5px;
