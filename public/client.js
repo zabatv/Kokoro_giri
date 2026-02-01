@@ -13,7 +13,7 @@ ctx.msImageSmoothingEnabled = false;
 const playBtn = document.getElementById('play-btn');
 let playerId;
 let players = {};
-let lines = []; // массив для хранения всех линий
+let lines = []; // === НОВОЕ: массив для линий ===
 let role = null;
 let roomId = null;
 
@@ -27,7 +27,7 @@ playBtn.addEventListener('click', () => {
     socket.on('gameStart', (data) => {
         role = data.role;
         roomId = data.roomId;
-        playerId = socket.id;
+        playerId = socket.id; // === УБЕДИМСЯ, ЧТО playerId УСТАНОВЛЕН ===
         loadingScreen.classList.remove('active');
         gameArea.style.display = 'flex';
         gameCanvas.style.display = 'block';
@@ -41,20 +41,20 @@ playBtn.addEventListener('click', () => {
 
     socket.on('currentPlayers', (currentPlayers) => {
         players = currentPlayers;
-        draw();
+        draw(); // === ИСПРАВЛЕНО: draw теперь доступна ===
     });
 
     socket.on('playerMoved', (movedPlayer) => {
         if (movedPlayer.id !== playerId) {
             players[movedPlayer.id] = movedPlayer;
         }
-        draw();
+        draw(); // === ИСПРАВЛЕНО: draw теперь доступна ===
     });
 
-    // Обработка получения новой линии от сервера
+    // === НОВОЕ: получение линии от сервера ===
     socket.on('newLine', (lineData) => {
-        lines.push(lineData); // добавляем линию в массив
-        draw(); // перерисовываем
+        lines.push(lineData);
+        draw();
     });
 });
 
@@ -71,7 +71,7 @@ function initGame(socket) {
     let lastSentTime = 0;
     const sendInterval = 1000 / 30; // 30 раз в секунду
 
-    // Переменные для выбора точек
+    // === НОВОЕ: переменные для работы с линией ===
     let selectedItem = null;
     let selectedPoints = [];
 
@@ -105,42 +105,9 @@ function initGame(socket) {
             socket.emit('playerMove', { x: p.x, y: p.y, id: playerId });
             lastSentTime = now;
         }
-
-        draw();
     }
 
-    function draw() {
-        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-
-        // Рисуем игроков
-        for (const id in players) {
-            const player = players[id];
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, 20, 20);
-        }
-
-        // Рисуем все линии
-        lines.forEach((line) => {
-            ctx.beginPath();
-            ctx.strokeStyle = '#FF0000';
-            ctx.lineWidth = 3;
-            ctx.moveTo(line.from.x, line.from.y);
-            ctx.lineTo(line.to.x, line.to.y);
-            ctx.stroke();
-        });
-
-        // Если выбраны две точки — рисуем временную линию
-        if (selectedPoints.length === 2) {
-            ctx.beginPath();
-            ctx.strokeStyle = '#FF0000';
-            ctx.lineWidth = 3;
-            ctx.moveTo(selectedPoints[0].x, selectedPoints[0].y);
-            ctx.lineTo(selectedPoints[1].x, selectedPoints[1].y);
-            ctx.stroke();
-        }
-    }
-
-    // Обработка клика на canvas
+    // === НОВОЕ: обработка клика на canvas ===
     gameCanvas.addEventListener('click', (e) => {
         if (selectedItem !== 'item1') return;
 
@@ -151,19 +118,35 @@ function initGame(socket) {
         selectedPoints.push({ x, y });
 
         if (selectedPoints.length === 2) {
-            // Отправляем данные о линии на сервер
             const lineData = { from: selectedPoints[0], to: selectedPoints[1], playerId };
-            socket.emit('drawLine', lineData);
-
-            // Очищаем выбор через 2 секунды
-            setTimeout(() => {
-                selectedPoints = [];
-                draw();
-            }, 2000);
+            socket.emit('drawLine', lineData); // === ОТПРАВКА НА СЕРВЕР ===
+            selectedPoints = [];
         }
     });
 
     setInterval(update, 1000 / 60); // 60 FPS для отрисовки
+}
+
+// === НОВОЕ: функция draw вынесена из initGame ===
+function draw() {
+    ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+    // Рисуем игроков
+    for (const id in players) {
+        const player = players[id];
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x, player.y, 20, 20);
+    }
+
+    // Рисуем линии
+    lines.forEach((line) => {
+        ctx.beginPath();
+        ctx.strokeStyle = '#FF0000';
+        ctx.lineWidth = 3;
+        ctx.moveTo(line.from.x, line.from.y);
+        ctx.lineTo(line.to.x, line.to.y);
+        ctx.stroke();
+    });
 }
 
 // === Функция выбора предмета из инвентаря ===
