@@ -31,23 +31,12 @@ io.on('connection', (socket) => {
             player1Socket.join(roomId);
             player2Socket.join(roomId);
 
-            // Данные о себе и другом
-            const gameState = {
-                player1: { id: player1Id, cuts: 0 },
-                player2: { id: player2Id, cuts: 0 }
-            };
+            // Уведомляем игроков о роли
+            player1Socket.emit('gameStart', { role: 'player1', roomId });
+            player2Socket.emit('gameStart', { role: 'player2', roomId });
 
-            // Отправляем каждому его роль и начальное состояние
-            player1Socket.emit('gameStart', { role: 'player1', roomId, state: gameState });
-            player2Socket.emit('gameStart', { role: 'player2', roomId, state: gameState });
-
-            setupGame(io, player1Socket, player2Socket, roomId, gameState);
+            setupGame(io, player1Socket, player2Socket, roomId);
         }
-    });
-
-    socket.on('cutDecision', (data) => {
-        const { choice, roomId } = data;
-        socket.to(roomId).emit('opponentChose', { choice });
     });
 
     socket.on('disconnect', () => {
@@ -59,32 +48,37 @@ io.on('connection', (socket) => {
     });
 });
 
-function setupGame(io, player1Socket, player2Socket, roomId, gameState) {
-    // Обработка решений
-    player1Socket.on('cutDecision', (data) => {
-        if (data.choice === 'self') {
-            gameState.player1.cuts += 2;
-        } else if (data.choice === 'other') {
-            gameState.player2.cuts += 1;
+function setupGame(io, player1Socket, player2Socket, roomId) {
+    const players = {
+        [player1Socket.id]: { x: 100, y: 200, color: '#FF5722' },
+        [player2Socket.id]: { x: 500, y: 200, color: '#2196F3' },
+    };
+
+    // Отправляем начальное состояние
+    player1Socket.emit('currentPlayers', players);
+    player2Socket.emit('currentPlayers', players);
+
+    // Прослушиваем движения игроков
+    player1Socket.on('playerMove', (data) => {
+        if (players[data.id]) {
+            players[data.id].x = data.x;
+            players[data.id].y = data.y;
+            io.to(roomId).emit('playerMoved', { id: data.id, ...data });
         }
-        // Отправляем обновлённое состояние обоим
-        io.to(roomId).emit('updateState', gameState);
     });
 
-    player2Socket.on('cutDecision', (data) => {
-        if (data.choice === 'self') {
-            gameState.player2.cuts += 2;
-        } else if (data.choice === 'other') {
-            gameState.player1.cuts += 1;
+    player2Socket.on('playerMove', (data) => {
+        if (players[data.id]) {
+            players[data.id].x = data.x;
+            players[data.id].y = data.y;
+            io.to(roomId).emit('playerMoved', { id: data.id, ...data });
         }
-        // Отправляем обновлённое состояние обоим
-        io.to(roomId).emit('updateState', gameState);
     });
 
-    // Уведомление об отключении
     player1Socket.once('disconnect', () => {
         io.to(roomId).emit('opponentDisconnected');
     });
+
     player2Socket.once('disconnect', () => {
         io.to(roomId).emit('opponentDisconnected');
     });
