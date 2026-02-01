@@ -100,22 +100,21 @@ body {
 /* Контейнер для предметов — размещаем ВНУТРИ рамки */
 .inventory-items {
     position: absolute;
-    top: 40px;      /* отступ сверху (под "верхней частью рамки") */
-    left: 30px;     /* отступ слева — чтобы попасть внутрь рамки, а не за неё */
-    width: 61px;    /* ширина одной ячейки */
-    height: calc((61px * 5) + (10px * 4)); /* 5 предметов + 4 промежутка */
+    top: 60px;
+    left: 16px;
+    width: 61px;
+    height: calc((110px * 5) + (10px * 4));
     display: grid;
     grid-template-rows: repeat(5, 1fr);
     gap: 10px;
-    /* Без padding/margin — всё управляем через position */
 }
 
 .inventory-item {
-    width: 61px;
-    height: 61px;
+    width: 100px;
+    height: 100px;
     background-color: rgba(200, 200, 200, 0.3);
     border: 1px solid #aaa;
-    border-radius: 5px;
+    border-radius: 6px;
     display: flex;
     justify-content: center;
     align-items: center;
