@@ -12,93 +12,85 @@ app.use(express.static('public'));
 let waitingPlayers = [];
 
 io.on('connection', (socket) => {
-  console.log('Игрок подключился:', socket.id);
+    console.log('Игрок подключился:', socket.id);
 
-  socket.on('requestToPlay', () => {
-    waitingPlayers.push(socket.id);
-    console.log('Игрок добавлен в очередь. Текущее количество:', waitingPlayers.length);
+    socket.on('requestToPlay', () => {
+        waitingPlayers.push(socket.id);
+        console.log('Игрок добавлен в очередь. Текущее количество:', waitingPlayers.length);
 
-    if (waitingPlayers.length === 2) {
-      const player1Id = waitingPlayers.pop();
-      const player2Id = waitingPlayers.pop();
+        if (waitingPlayers.length === 2) {
+            const player1Id = waitingPlayers.pop();
+            const player2Id = waitingPlayers.pop();
 
-      const player1Socket = io.sockets.sockets.get(player1Id);
-      const player2Socket = io.sockets.sockets.get(player2Id);
+            const player1Socket = io.sockets.sockets.get(player1Id);
+            const player2Socket = io.sockets.sockets.get(player2Id);
 
-      // Создаём комнату
-      const roomId = `room-${Date.now()}`;
+            // Создаём комнату
+            const roomId = `room-${Date.now()}`;
 
-      player1Socket.join(roomId);
-      player2Socket.join(roomId);
+            player1Socket.join(roomId);
+            player2Socket.join(roomId);
 
-      // Уведомляем игроков о роли и начальных предметах
-      player1Socket.emit('startGame', { role: 'player1', roomId });
-      player2Socket.emit('startGame', { role: 'player2', roomId });
+            // Данные о себе и другом
+            const gameState = {
+                player1: { id: player1Id, cuts: 0 },
+                player2: { id: player2Id, cuts: 0 }
+            };
 
-      // Отправляем начальные позиции предметов
-      const initialItems = {
-        player1Item: { x: 150, y: 200, angle: 0 },
-        player2Item: { x: 450, y: 200, angle: 0 }
-      };
+            // Отправляем каждому его роль и начальное состояние
+            player1Socket.emit('gameStart', { role: 'player1', roomId, state: gameState });
+            player2Socket.emit('gameStart', { role: 'player2', roomId, state: gameState });
 
-      player1Socket.emit('initialItems', initialItems);
-      player2Socket.emit('initialItems', initialItems);
+            setupGame(io, player1Socket, player2Socket, roomId, gameState);
+        }
+    });
 
-      setupGame(io, player1Socket, player2Socket, roomId);
-    }
-  });
+    socket.on('cutDecision', (data) => {
+        const { choice, roomId } = data;
+        socket.to(roomId).emit('opponentChose', { choice });
+    });
 
-  socket.on('itemMoved', (data) => {
-    // Отправляем позицию предмета другому игроку
-    socket.to(data.roomId).emit('itemPosition', { id: data.id, pos: data.pos });
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Игрок отключился:', socket.id);
-    const index = waitingPlayers.indexOf(socket.id);
-    if (index !== -1) {
-      waitingPlayers.splice(index, 1);
-    }
-  });
+    socket.on('disconnect', () => {
+        console.log('Игрок отключился:', socket.id);
+        const index = waitingPlayers.indexOf(socket.id);
+        if (index !== -1) {
+            waitingPlayers.splice(index, 1);
+        }
+    });
 });
 
-function setupGame(io, player1Socket, player2Socket, roomId) {
-  const players = {
-    [player1Socket.id]: { x: 100, y: 200, color: '#FF5722' },
-    [player2Socket.id]: { x: 500, y: 200, color: '#2196F3' },
-  };
+function setupGame(io, player1Socket, player2Socket, roomId, gameState) {
+    // Обработка решений
+    player1Socket.on('cutDecision', (data) => {
+        if (data.choice === 'self') {
+            gameState.player1.cuts += 2;
+        } else if (data.choice === 'other') {
+            gameState.player2.cuts += 1;
+        }
+        // Отправляем обновлённое состояние обоим
+        io.to(roomId).emit('updateState', gameState);
+    });
 
-  // Отправляем начальное состояние
-  player1Socket.emit('currentPlayers', players);
-  player2Socket.emit('currentPlayers', players);
+    player2Socket.on('cutDecision', (data) => {
+        if (data.choice === 'self') {
+            gameState.player2.cuts += 2;
+        } else if (data.choice === 'other') {
+            gameState.player1.cuts += 1;
+        }
+        // Отправляем обновлённое состояние обоим
+        io.to(roomId).emit('updateState', gameState);
+    });
 
-  // Прослушиваем движения игроков
-  player1Socket.on('playerMove', (data) => {
-    if (players[data.id]) {
-      players[data.id].x = data.x;
-      players[data.id].y = data.y;
-      io.to(roomId).emit('playerMoved', { id: data.id, ...data });
-    }
-  });
-
-  player2Socket.on('playerMove', (data) => {
-    if (players[data.id]) {
-      players[data.id].x = data.x;
-      players[data.id].y = data.y;
-      io.to(roomId).emit('playerMoved', { id: data.id, ...data });
-    }
-  });
-
-  player1Socket.once('disconnect', () => {
-    io.to(roomId).emit('opponentDisconnected');
-  });
-
-  player2Socket.once('disconnect', () => {
-    io.to(roomId).emit('opponentDisconnected');
-  });
+    // Уведомление об отключении
+    player1Socket.once('disconnect', () => {
+        io.to(roomId).emit('opponentDisconnected');
+    });
+    player2Socket.once('disconnect', () => {
+        io.to(roomId).emit('opponentDisconnected');
+    });
 }
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`✅ Сервер запущен на порту ${PORT}`);
+    console.log(`✅ Сервер запущен на порту ${PORT}`);
 });
