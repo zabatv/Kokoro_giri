@@ -2,42 +2,46 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Эксперимент</title>
+    <title>Multiplayer Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <!-- Стартовый экран -->
     <div id="start-screen" class="screen active">
         <div class="logo-container">
-            <h1>Эксперимент</h1>
+            <img src="logo/image.gif" alt="Logo" class="logo">
         </div>
         <button id="play-btn" class="play-btn">
-            <span>Начать</span>
+            <img src="play_button/image.gif" alt="Play Button">
         </button>
     </div>
 
     <!-- Экран загрузки -->
     <div id="loading-screen" class="screen">
-        <h2>Подключение...</h2>
-        <img src="loading/image.gif" alt="Загрузка" class="loading-gif">
+        <h2>Подождите, идёт подключение к противнику...</h2>
+        <img src="loading/image.gif" alt="Loading..." class="loading-gif">
     </div>
 
     <!-- Игровая зона -->
     <div id="game-area" class="game-container">
         <div class="inventory-panel left">
-            <h3>Ты</h3>
-            <div id="my-cuts">Порезы: <span id="my-count">0</span></div>
-        </div>
-        <div class="center-area">
-            <h2 id="status">Ожидание выбора...</h2>
-            <div class="choice-buttons">
-                <button id="cut-self">2 пореза себе</button>
-                <button id="cut-other">1 порез другому</button>
+            <div class="inventory-title">Your Inventory📦</div>
+            <div class="inventory-items">
+                <div class="inventory-item" onclick="selectItem(this)" data-item-id="item1">
+                    <img src="items/item1.png" alt="Item 1" style="width: 100%; height: 100%;">
+                </div>
             </div>
         </div>
+
+        <canvas id="gameCanvas"></canvas>
+
         <div class="inventory-panel right">
-            <h3>Другой</h3>
-            <div id="other-cuts">Порезы: <span id="other-count">0</span></div>
+            <div class="inventory-title">Enemy Inventory</div>
+            <div class="inventory-items">
+                <div class="inventory-item">
+                    <img src="items/item1.png" alt="Item 1" style="width: 100%; height: 100%;">
+                </div>
+            </div>
         </div>
     </div>
 
