@@ -86,11 +86,11 @@ body {
 }
 
 .inventory-panel {
-    width: 100px;
+    width: 130px;
     height: 100%;
     display: flex;
     flex-direction: row;
-    padding-top: 20px;
+    padding: 100px;
     background-image: url(border/image.gif);
     background-size: 183px 696px;
     background-repeat: no-repeat;
