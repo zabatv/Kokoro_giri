@@ -112,12 +112,13 @@ body {
 /* Инвентарь: 1 колонка, 5 рядов */
 .inventory-items {
     display: grid;
-    grid-template-columns: 1fr; /* 1 колонка */
+    grid-template-columns: 1fr; /* Оставить одну колонку */
     grid-template-rows: repeat(5, 1fr); /* 5 рядов */
-    gap: 5px; /* Уменьшаем промежутки между предметами */
-    width: 100%; /* Занимаем всю доступную ширину */
-    margin-top: -10px; /* Приближаем к верхнему краю (если нужно) */
-    align-self: flex-start; /* Прижимаем к верху */
+    gap: 10px; /* Расстояние между ячейками */
+    width: 100%; /* Занимает всю ширину родительского контейнера */
+    height: calc((61px * 5) + (10px * 4)); /* Высота для 5 предметов + промежутки */
+    margin-left: 10px; /* Добавляем отступ слева */
+    align-self: flex-start; /* Прижимаем к верхней части */
 }
 
 .inventory-item {
