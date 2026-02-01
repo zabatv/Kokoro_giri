@@ -112,9 +112,10 @@ body {
 .inventory-item {
     width: 100px;
     height: 100px;
-    background-color: rgba(200, 200, 200, 0.3);
-    border: 1px solid #aaa;
-    border-radius: 6px;
+    position: relative;
+    /* Убираем background-color — вместо него фоновая рамка */
+    background: url(item_frame/image.gif) no-repeat center center / 100% auto;
+    border: none; /* рамка уже в изображении */
     display: flex;
     justify-content: center;
     align-items: center;
