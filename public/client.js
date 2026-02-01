@@ -13,6 +13,7 @@ ctx.msImageSmoothingEnabled = false;
 const playBtn = document.getElementById('play-btn');
 let playerId;
 let players = {};
+let lines = []; // массив для хранения всех линий
 let role = null;
 let roomId = null;
 
@@ -20,13 +21,13 @@ let roomId = null;
 playBtn.addEventListener('click', () => {
     startScreen.classList.remove('active');
     loadingScreen.classList.add('active');
-
     const socket = io();
     socket.emit('requestToPlay');
 
     socket.on('gameStart', (data) => {
         role = data.role;
         roomId = data.roomId;
+        playerId = socket.id;
         loadingScreen.classList.remove('active');
         gameArea.style.display = 'flex';
         gameCanvas.style.display = 'block';
@@ -49,6 +50,12 @@ playBtn.addEventListener('click', () => {
         }
         draw();
     });
+
+    // Обработка получения новой линии от сервера
+    socket.on('newLine', (lineData) => {
+        lines.push(lineData); // добавляем линию в массив
+        draw(); // перерисовываем
+    });
 });
 
 // === ИГРОВАЯ ЛОГИКА ===
@@ -63,6 +70,10 @@ function initGame(socket) {
 
     let lastSentTime = 0;
     const sendInterval = 1000 / 30; // 30 раз в секунду
+
+    // Переменные для выбора точек
+    let selectedItem = null;
+    let selectedPoints = [];
 
     function update() {
         if (!players[playerId]) return;
@@ -100,20 +111,73 @@ function initGame(socket) {
 
     function draw() {
         ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
         // Рисуем игроков
         for (const id in players) {
             const player = players[id];
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, 20, 20);
         }
+
+        // Рисуем все линии
+        lines.forEach((line) => {
+            ctx.beginPath();
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 3;
+            ctx.moveTo(line.from.x, line.from.y);
+            ctx.lineTo(line.to.x, line.to.y);
+            ctx.stroke();
+        });
+
+        // Если выбраны две точки — рисуем временную линию
+        if (selectedPoints.length === 2) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 3;
+            ctx.moveTo(selectedPoints[0].x, selectedPoints[0].y);
+            ctx.lineTo(selectedPoints[1].x, selectedPoints[1].y);
+            ctx.stroke();
+        }
     }
+
+    // Обработка клика на canvas
+    gameCanvas.addEventListener('click', (e) => {
+        if (selectedItem !== 'item1') return;
+
+        const rect = gameCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        selectedPoints.push({ x, y });
+
+        if (selectedPoints.length === 2) {
+            // Отправляем данные о линии на сервер
+            const lineData = { from: selectedPoints[0], to: selectedPoints[1], playerId };
+            socket.emit('drawLine', lineData);
+
+            // Очищаем выбор через 2 секунды
+            setTimeout(() => {
+                selectedPoints = [];
+                draw();
+            }, 2000);
+        }
+    });
 
     setInterval(update, 1000 / 60); // 60 FPS для отрисовки
 }
 
 // === Функция выбора предмета из инвентаря ===
 function selectItem(element) {
-    if (element.dataset.itemId === 'item1') {
-        console.log("Выбран предмет: item1");
+    const itemId = element.dataset.itemId;
+    selectedItem = itemId;
+
+    if (itemId === 'item1') {
+        console.log("Выбран предмет: item1 — режим выбора двух точек");
+        selectedPoints = [];
+        alert("Кликните два раза на поле, чтобы провести линию.");
+    } else {
+        console.log("Выбран другой предмет:", itemId);
+        selectedItem = null;
+        selectedPoints = [];
     }
 }
