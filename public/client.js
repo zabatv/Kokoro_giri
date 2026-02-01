@@ -243,12 +243,11 @@ function initGame(socket) {
             drop.life -= drop.decayRate;
 
             if (drop.life <= 0) {
-                // === РИСУЕМ ОКОНЧАТЕЛЬНЫЙ СЛЕД ПОСЛЕ СМЕРТИ КАПЛИ ===
-                trailsCtx.globalAlpha = 1.0; // Полностью непрозрачный след
-                trailsCtx.fillStyle = '#0000FF'; // Цвет следа
-                trailsCtx.beginPath();
-                trailsCtx.ellipse(drop.x, drop.y, drop.radius, drop.radius * 1.5, 0, 0, Math.PI * 2);
-                trailsCtx.fill();
+                // === УБИРАЕМ ФИНАЛЬНЫЙ ОВАЛ ===
+                // trailsCtx.fillStyle = '#0000FF';
+                // trailsCtx.beginPath();
+                // trailsCtx.ellipse(drop.x, drop.y, drop.radius, drop.radius * 1.5, 0, 0, Math.PI * 2);
+                // trailsCtx.fill();
 
                 liquidDrops.splice(i, 1); // удаляем каплю, если "умерла"
             }
@@ -309,6 +308,18 @@ function draw() {
         gameCtx.fill();
     });
 
+    // === ОТРИСОВКА СЛЕДА КАПЕЛЬ НА trailsCanvas ===
+    // КАПЛИ ОСТАВЛЯЮТ СЛЕД КАЖДЫЙ КАДР, ПОКА ЖИВЫ
+    liquidDrops.forEach(drop => {
+        // === РИСУЕМ СЛЕД НА trailsCanvas ===
+        // Прозрачность следа зависит от "жизни" капли
+        trailsCtx.globalAlpha = drop.life * 0.3; // можно регулировать интенсивность
+        trailsCtx.fillStyle = '#0000FF'; // цвет следа
+        trailsCtx.beginPath();
+        trailsCtx.ellipse(drop.x, drop.y, drop.radius, drop.radius * 1.5, 0, 0, Math.PI * 2);
+        trailsCtx.fill();
+    });
+
     // Рисуем снаряды (иконки)
     projectiles.forEach(proj => {
         if (!proj.done && itemIcon.complete) {
@@ -330,7 +341,7 @@ function draw() {
         }
     });
 
-    // === ОТРИСОВКА ТЕКУЩИХ КАПЕЛЬ (без очистки trailsCanvas) ===
+    // === ОТРИСОВКА ТЕКУЩИХ КАПЕЛЬ НА gameCanvas ===
     liquidDrops.forEach(drop => {
         // === РИСУЕМ САМУ КАПЛЮ НА gameCanvas ===
         gameCtx.globalAlpha = drop.life;
@@ -342,7 +353,7 @@ function draw() {
 
     // === СБРОС АЛЬФЫ ===
     gameCtx.globalAlpha = 1.0;
-    // trailsCtx.globalAlpha НЕ СБРАСЫВАЕМ, потому что следы уже нарисованы и непрозрачны
+    trailsCtx.globalAlpha = 1.0; // восстанавливаем alpha для следующего кадра
 }
 
 // === ФУНКЦИЯ ВЫБОРА ПРЕДМЕТА (адаптирована под data-item-id) ===
