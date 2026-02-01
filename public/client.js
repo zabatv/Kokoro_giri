@@ -2,17 +2,28 @@ const startScreen = document.getElementById('start-screen');
 const loadingScreen = document.getElementById('loading-screen');
 const gameArea = document.getElementById('game-area');
 const gameCanvas = document.getElementById('gameCanvas');
-const ctx = gameCanvas.getContext('2d');
+const trailsCanvas = document.createElement('canvas'); // === ДИНАМИЧЕСКИ СОЗДАЁМ trailsCanvas ===
+const gameCtx = gameCanvas.getContext('2d');
+const trailsCtx = trailsCanvas.getContext('2d');
 
 // === Отключаем сглаживание для canvas ===
-ctx.imageSmoothingEnabled = false;
-ctx.webkitImageSmoothingEnabled = false;
-ctx.mozImageSmoothingEnabled = false;
-ctx.msImageSmoothingEnabled = false;
+gameCtx.imageSmoothingEnabled = false;
+gameCtx.webkitImageSmoothingEnabled = false;
+gameCtx.mozImageSmoothingEnabled = false;
+gameCtx.msImageSmoothingEnabled = false;
+
+trailsCtx.imageSmoothingEnabled = false;
+trailsCtx.webkitImageSmoothingEnabled = false;
+trailsCtx.mozImageSmoothingEnabled = false;
+trailsCtx.msImageSmoothingEnabled = false;
 
 const playBtn = document.getElementById('play-btn');
 let playerId;
 let players = {};
+let lines = []; // === ХРАНИМ ЛИНИИ ===
+let drawnPoints = []; // === ХРАНИМ ТОЧКИ ===
+let projectiles = []; // === ХРАНИМ ИКОНКИ ===
+let liquidDrops = []; // === ХРАНИМ КАПЛИ ===
 let role = null;
 let roomId = null;
 
@@ -34,9 +45,25 @@ playBtn.addEventListener('click', () => {
     socket.on('gameStart', (data) => {
         role = data.role;
         roomId = data.roomId;
+        playerId = socket.id; // === УСТАНАВЛИВАЕМ ID ИГРОКА ===
         loadingScreen.classList.remove('active');
         gameArea.style.display = 'flex';
         gameCanvas.style.display = 'block';
+
+        // === НАСТРАИВАЕМ trailsCanvas ===
+        trailsCanvas.width = gameCanvas.width;
+        trailsCanvas.height = gameCanvas.height;
+        trailsCanvas.id = 'trailsCanvas';
+        trailsCanvas.style.position = 'absolute';
+        trailsCanvas.style.top = '0';
+        trailsCanvas.style.left = '0';
+        trailsCanvas.style.zIndex = '0'; // Под gameCanvas
+        trailsCanvas.style.pointerEvents = 'none'; // Не мешает кликам
+        trailsCanvas.style.backgroundColor = 'transparent'; // Прозрачный фон
+
+        // === ВСТАВЛЯЕМ trailsCanvas ПЕРЕД gameCanvas ===
+        gameCanvas.parentNode.insertBefore(trailsCanvas, gameCanvas);
+
         initGame(socket);
     });
 
@@ -56,12 +83,76 @@ playBtn.addEventListener('click', () => {
         }
         draw();
     });
+
+    // === ПРИЁМ ЛИНИИ ОТ СЕРВЕРА ===
+    socket.on('newLine', (lineData) => {
+        lines.push({
+            from: lineData.from,
+            to: lineData.to,
+            timestamp: Date.now()
+        });
+        drawnPoints.push(lineData.from, lineData.to);
+        launchProjectile(lineData.from, lineData.to);
+    });
 });
+
+// === ФУНКЦИЯ ЗАПУСКА АНИМИРОВАННОГО СНАРЯДА (с жидкостью) ===
+function launchProjectile(from, to) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    const flightDurationMs = distance * 10; // например, 10ms на пиксель
+    const framesForFlight = flightDurationMs / (1000 / 60); // ~60 FPS
+    const stepX = dx / framesForFlight;
+    const stepY = dy / framesForFlight;
+
+    projectiles.push({
+        x: from.x,
+        y: from.y,
+        targetX: to.x,
+        targetY: to.y,
+        angle: Math.atan2(dy, dx),
+        stepX,
+        stepY,
+        remainingSteps: framesForFlight,
+        done: false,
+        dropTimer: 0
+    });
+}
+
+// === ФУНКЦИЯ СОЗДАНИЯ КАПЛИ ===
+function createDrop(x, y) {
+    // === НАЧАЛЬНАЯ СКОРОСТЬ КАПЛИ ===
+    const initialSpeed = 1.0 + Math.random() * 2.0; // от 1.0 до 3.0
+    const angleVariance = (Math.random() - 0.5) * 0.5; // небольшой разброс направления
+    const dirAngle = Math.PI / 2 + angleVariance; // начинаем "падать" вниз (+/- угол)
+
+    liquidDrops.push({
+        x: x,
+        y: y,
+        vx: Math.cos(dirAngle) * initialSpeed, // начальная скорость по X
+        vy: Math.sin(dirAngle) * initialSpeed, // начальная скорость по Y
+        friction: 0.95, // коэффициент трения/замедления (меньше 1.0)
+        radius: Math.random() * 2 + 1, // случайный размер капли (1-3px)
+        life: 1.0, // начальная "жизнь" (для alpha)
+        decayRate: 0.005 // скорость уменьшения жизни (медленнее)
+    });
+}
 
 // === ИГРОВАЯ ЛОГИКА ===
 function initGame(socket) {
     gameCanvas.width = gameCanvas.clientWidth;
     gameCanvas.height = gameCanvas.clientHeight;
+
+    // === ОБНОВЛЯЕМ РАЗМЕР trailsCanvas ПРИ ИЗМЕНЕНИИ ===
+    function handleResize() {
+        gameCanvas.width = gameCanvas.clientWidth;
+        gameCanvas.height = gameCanvas.clientHeight;
+        trailsCanvas.width = gameCanvas.width;
+        trailsCanvas.height = gameCanvas.height;
+    }
+    window.addEventListener('resize', handleResize);
 
     // Клавиши
     const keys = {};
@@ -70,29 +161,6 @@ function initGame(socket) {
 
     let lastSentTime = 0;
     const sendInterval = 1000 / 30; // 30 раз в секунду
-
-    // === МАССИВ ДЛЯ ХРАНЕНИЯ КАПЕЛЬ ===
-    let liquidDrops = [];
-
-    // === ФУНКЦИЯ СОЗДАНИЯ КАПЛИ ===
-    function createDrop(x, y) {
-        // === НАЧАЛЬНАЯ СКОРОСТЬ КАПЛИ ===
-        const initialSpeed = 1.0 + Math.random() * 2.0; // от 1.0 до 3.0
-        const angleVariance = (Math.random() - 0.5) * 0.5; // небольшой разброс направления
-        const dirAngle = Math.PI / 2 + angleVariance; // начинаем "падать" вниз (+/- угол)
-
-        liquidDrops.push({
-            x: x,
-            y: y,
-            vx: Math.cos(dirAngle) * initialSpeed, // начальная скорость по X
-            vy: Math.sin(dirAngle) * initialSpeed, // начальная скорость по Y
-            friction: 0.95, // коэффициент трения/замедления (меньше 1.0)
-            radius: Math.random() * 2 + 1, // случайный размер капли (1-3px)
-            life: 1.0, // начальная "жизнь" (для alpha)
-            decayRate: 0.005, // скорость уменьшения жизни (медленнее)
-            trail: [] // === ИСТОРИЯ ПОЗИЦИЙ ДЛЯ СЛЕДА ===
-        });
-    }
 
     function update() {
         if (!players[playerId]) return;
@@ -125,7 +193,34 @@ function initGame(socket) {
             lastSentTime = now;
         }
 
-        // === ОБНОВЛЕНИЕ КАПЕЛЬ И ИХ СЛЕДА ===
+        // === ОБНОВЛЕНИЕ ПОЗИЦИИ СНАРЯДОВ ===
+        projectiles.forEach(proj => {
+            if (proj.done) return;
+
+            if (proj.remainingSteps <= 0) {
+                proj.done = true;
+            } else {
+                proj.x += proj.stepX;
+                proj.y += proj.stepY;
+                proj.remainingSteps--;
+
+                // === ГЕНЕРАЦИЯ КАПЕЛЬ ===
+                proj.dropTimer++;
+                if (proj.dropTimer >= 5) { // например, каждые 5 кадров
+                    const offsetX = (Math.random() - 0.5) * 20; // от -10 до +10
+                    const offsetY = (Math.random() - 0.5) * 10 + 15; // от +10 до +20 (ниже центра иконки)
+                    const cos = Math.cos(proj.angle);
+                    const sin = Math.sin(proj.angle);
+                    const rotatedOffsetX = offsetX * cos - offsetY * sin;
+                    const rotatedOffsetY = offsetX * sin + offsetY * cos;
+
+                    createDrop(proj.x + rotatedOffsetX, proj.y + rotatedOffsetY);
+                    proj.dropTimer = 0;
+                }
+            }
+        });
+
+        // === ОБНОВЛЕНИЕ КАПЕЛЬ ===
         for (let i = liquidDrops.length - 1; i >= 0; i--) {
             const drop = liquidDrops[i];
 
@@ -139,15 +234,9 @@ function initGame(socket) {
 
             // === ПРОВЕРКА, НЕ ОСТАНОВИЛАСЬ ЛИ КАПЛЯ ===
             const speedSquared = drop.vx * drop.vx + drop.vy * drop.vy;
-            if (speedSquared < 0.01) { // если скорость очень мала
+            if (speedSquared < 0.01) {
                 drop.vx = 0;
                 drop.vy = 0;
-            }
-
-            // === ОБНОВЛЕНИЕ СЛЕДА ===
-            drop.trail.push({ x: drop.x, y: drop.y });
-            if (drop.trail.length > 5) { // ограничиваем длину следа
-                drop.trail.shift();
             }
 
             // === УМЕНЬШЕНИЕ ЖИЗНИ ===
@@ -161,58 +250,114 @@ function initGame(socket) {
         draw();
     }
 
-    function draw() {
-        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+    // === ОБРАБОТКА КЛИКА НА CANVAS ===
+    gameCanvas.addEventListener('click', (e) => {
+        if (selectedItem !== 'item1') return;
 
-        // Рисуем игроков
-        for (const id in players) {
-            const player = players[id];
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, 20, 20);
+        const rect = gameCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        tempSelectedPoints.push({ x, y });
+        drawnPoints.push({ x, y });
+
+        if (tempSelectedPoints.length === 2) {
+            const lineData = { from: tempSelectedPoints[0], to: tempSelectedPoints[1], playerId };
+            socket.emit('drawLine', lineData);
+            console.log("Отправлено событие drawLine:", lineData);
+            tempSelectedPoints = [];
         }
-
-        // Рисуем капли (жидкость) и их след
-        liquidDrops.forEach(drop => {
-            // === РИСУЕМ СЛЕД ===
-            if (drop.trail.length > 1) {
-                for (let j = 0; j < drop.trail.length; j++) {
-                    const trailPoint = drop.trail[j];
-                    // Прозрачность зависит от "возраста" точки следа (чем дальше, тем прозрачнее)
-                    const trailAlpha = (j / drop.trail.length) * drop.life; // учитываем общую жизнь капли
-                    ctx.globalAlpha = trailAlpha;
-                    ctx.fillStyle = '#0000FF'; // цвет следа (тот же, что и капля)
-                    ctx.beginPath();
-                    // Рисуем точку следа как овал
-                    ctx.ellipse(trailPoint.x, trailPoint.y, drop.radius * 0.8, drop.radius * 1.2, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-
-            // === РИСУЕМ САМУ КАПЛЮ ===
-            ctx.globalAlpha = drop.life; // прозрачность капли зависит от её "жизни"
-            ctx.fillStyle = '#0000FF'; // цвет капли
-            ctx.beginPath();
-            // Рисуем овал, имитирующий каплю (ширина чуть больше высоты)
-            ctx.ellipse(drop.x, drop.y, drop.radius, drop.radius * 1.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-        });
-        // Сбрасываем alpha
-        ctx.globalAlpha = 1.0;
-    }
+    });
 
     setInterval(update, 1000 / 60); // 60 FPS для отрисовки
 }
 
-// === Функция выбора предмета из инвентаря ===
+// === ФУНКЦИЯ ОТРИСОВКИ ===
+function draw() {
+    // === ОЧИСТКА ИГРОВОГО CANVAS ===
+    gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+    // Рисуем игроков
+    for (const id in players) {
+        const player = players[id];
+        gameCtx.fillStyle = player.color;
+        gameCtx.fillRect(player.x, player.y, 20, 20);
+    }
+
+    // Рисуем линии
+    lines.forEach((line) => {
+        gameCtx.beginPath();
+        gameCtx.strokeStyle = '#000000';
+        gameCtx.lineWidth = 3;
+        gameCtx.moveTo(line.from.x, line.from.y);
+        gameCtx.lineTo(line.to.x, line.to.y);
+        gameCtx.stroke();
+    });
+
+    // Рисуем точки
+    drawnPoints.forEach(point => {
+        gameCtx.beginPath();
+        gameCtx.fillStyle = '#000000';
+        gameCtx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+        gameCtx.fill();
+    });
+
+    // Рисуем снаряды (иконки)
+    projectiles.forEach(proj => {
+        if (!proj.done && itemIcon.complete) {
+            gameCtx.save();
+            gameCtx.translate(proj.x, proj.y);
+            gameCtx.rotate(proj.angle);
+
+            const iconSize = 30;
+            gameCtx.imageSmoothingEnabled = false;
+            gameCtx.drawImage(
+                itemIcon,
+                -iconSize / 2,
+                -iconSize,
+                iconSize,
+                iconSize
+            );
+
+            gameCtx.restore();
+        }
+    });
+
+    // === ОТРИСОВКА КАПЕЛЬ И ИХ СЛЕДОВ ===
+    // Сначала очищаем trailsCanvas
+    trailsCtx.clearRect(0, 0, trailsCanvas.width, trailsCanvas.height);
+
+    liquidDrops.forEach(drop => {
+        // === РИСУЕМ СЛЕД НА trailsCanvas ===
+        trailsCtx.globalAlpha = drop.life * 0.3; // делаем след менее прозрачным, чем сама капля
+        trailsCtx.fillStyle = '#0000FF'; // цвет следа
+        trailsCtx.beginPath();
+        trailsCtx.ellipse(drop.x, drop.y, drop.radius, drop.radius * 1.5, 0, 0, Math.PI * 2);
+        trailsCtx.fill();
+
+        // === РИСУЕМ САМУ КАПЛЮ НА gameCanvas ===
+        gameCtx.globalAlpha = drop.life;
+        gameCtx.fillStyle = '#0000FF'; // цвет капли
+        gameCtx.beginPath();
+        gameCtx.ellipse(drop.x, drop.y, drop.radius, drop.radius * 1.5, 0, 0, Math.PI * 2);
+        gameCtx.fill();
+    });
+
+    // === СБРОС АЛЬФЫ ===
+    gameCtx.globalAlpha = 1.0;
+    trailsCtx.globalAlpha = 1.0;
+}
+
+// === ФУНКЦИЯ ВЫБОРА ПРЕДМЕТА (адаптирована под data-item-id) ===
 function selectItem(element) {
-    const itemId = element.dataset.itemId;
+    // === ИСПРАВЛЕНО: используем kebab-case ===
+    const itemId = element.dataset.itemId; // или element.dataset['item-id']
     selectedItem = itemId;
 
     if (itemId === 'item1') {
         console.log("Выбран предмет: item1 — режим выбора двух точек");
         tempSelectedPoints = [];
-        // Убираем alert
-        // alert("Кликните два раза на поле, чтобы провести линию.");
+        // alert("Кликните два раза на поле, чтобы провести линию."); // Убрано
     } else {
         console.log("Выбран другой предмет:", itemId);
         selectedItem = null;
