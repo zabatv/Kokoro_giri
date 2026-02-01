@@ -13,13 +13,19 @@ ctx.msImageSmoothingEnabled = false;
 const playBtn = document.getElementById('play-btn');
 let playerId;
 let players = {};
-let lines = []; // === НОВОЕ: массив для хранения линий ===
+let lines = [];
+let drawnPoints = []; // === НОВОЕ: массив для точек ===
+let projectiles = []; // === НОВОЕ: массив для анимированных иконок ===
 let role = null;
 let roomId = null;
 
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ РАБОТЫ С ЛИНИЕЙ ===
 let selectedItem = null;
 let selectedPoints = [];
+
+// === Загрузка изображения иконки ===
+const itemIcon = new Image();
+itemIcon.src = 'items/item1.png';
 
 // === СТАРТЫЙ ЭКРАН ===
 playBtn.addEventListener('click', () => {
@@ -55,12 +61,29 @@ playBtn.addEventListener('click', () => {
         draw();
     });
 
-    // === НОВОЕ: получение линии от сервера ===
+    // === ПРИЁМ ЛИНИИ ОТ СЕРВЕРА ===
     socket.on('newLine', (lineData) => {
-        lines.push(lineData);
-        draw();
+        lines.push({
+            from: lineData.from,
+            to: lineData.to,
+            timestamp: Date.now()
+        });
+        drawnPoints.push(lineData.from, lineData.to); // === ДОБАВЛЯЕМ ТОЧКИ ===
+        launchProjectile(lineData.from, lineData.to); // === ЗАПУСК ИКОНКИ ===
     });
 });
+
+// === ФУНКЦИЯ ЗАПУСКА АНИМИРОВАННОГО СНАРЯДА ===
+function launchProjectile(from, to) {
+    projectiles.push({
+        x: from.x,
+        y: from.y,
+        targetX: to.x,
+        targetY: to.y,
+        speed: 0.1, // скорость (0.1 означает 10% пути за кадр)
+        done: false
+    });
+}
 
 // === ИГРОВАЯ ЛОГИКА ===
 function initGame(socket) {
@@ -106,10 +129,26 @@ function initGame(socket) {
             lastSentTime = now;
         }
 
+        // === ОБНОВЛЕНИЕ ПОЗИЦИИ СНАРЯДОВ ===
+        projectiles.forEach(proj => {
+            if (proj.done) return;
+
+            const dx = proj.targetX - proj.x;
+            const dy = proj.targetY - proj.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 5) {
+                proj.done = true; // остановить, если близко к цели
+            } else {
+                proj.x += dx * proj.speed;
+                proj.y += dy * proj.speed;
+            }
+        });
+
         draw();
     }
 
-    // === НОВОЕ: обработка клика на canvas (теперь имеет доступ к selectedItem) ===
+    // === ОБРАБОТКА КЛИКА НА CANVAS ===
     gameCanvas.addEventListener('click', (e) => {
         if (selectedItem !== 'item1') return;
 
@@ -122,6 +161,7 @@ function initGame(socket) {
         if (selectedPoints.length === 2) {
             const lineData = { from: selectedPoints[0], to: selectedPoints[1], playerId };
             socket.emit('drawLine', lineData);
+            console.log("Отправлено событие drawLine:", lineData);
             selectedPoints = []; // сброс точек
         }
     });
@@ -129,7 +169,7 @@ function initGame(socket) {
     setInterval(update, 1000 / 60); // 60 FPS для отрисовки
 }
 
-// === НОВОЕ: функция draw вынесена из initGame ===
+// === ФУНКЦИЯ ОТРИСОВКИ ===
 function draw() {
     ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
 
@@ -149,9 +189,27 @@ function draw() {
         ctx.lineTo(line.to.x, line.to.y);
         ctx.stroke();
     });
+
+    // Рисуем точки
+    drawnPoints.forEach(point => {
+        ctx.beginPath();
+        ctx.fillStyle = '#000000'; // чёрный цвет
+        ctx.arc(point.x, point.y, 5, 0, Math.PI * 2); // радиус 5
+        ctx.fill();
+    });
+
+    // Рисуем снаряды (иконки)
+    projectiles.forEach(proj => {
+        if (!proj.done && itemIcon.complete) {
+            // Размер иконки
+            const size = 30;
+            // Рисуем иконку так, чтобы её **нижний край** был на линии
+            ctx.drawImage(itemIcon, proj.x - size / 2, proj.y - size, size, size);
+        }
+    });
 }
 
-// === Функция выбора предмета из инвентаря ===
+// === ФУНКЦИЯ ВЫБОРА ПРЕДМЕТА ===
 function selectItem(element) {
     const itemId = element.dataset.itemId;
     selectedItem = itemId;
