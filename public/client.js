@@ -14,14 +14,14 @@ const playBtn = document.getElementById('play-btn');
 let playerId;
 let players = {};
 let lines = [];
-let drawnPoints = []; // === НОВОЕ: массив для точек ===
-let projectiles = []; // === НОВОЕ: массив для анимированных иконок ===
+let drawnPoints = []; // === Точки, отображаемые сразу при клике ===
+let tempSelectedPoints = []; // === Временные точки до отправки ===
+let projectiles = []; // === Анимированные иконки ===
 let role = null;
 let roomId = null;
 
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ РАБОТЫ С ЛИНИЕЙ ===
 let selectedItem = null;
-let selectedPoints = [];
 
 // === Загрузка изображения иконки ===
 const itemIcon = new Image();
@@ -68,8 +68,9 @@ playBtn.addEventListener('click', () => {
             to: lineData.to,
             timestamp: Date.now()
         });
-        drawnPoints.push(lineData.from, lineData.to); // === ДОБАВЛЯЕМ ТОЧКИ ===
-        launchProjectile(lineData.from, lineData.to); // === ЗАПУСК ИКОНКИ ===
+        // === ДОБАВЛЯЕМ ТОЧКИ ОТ СЕРВЕРА ===
+        drawnPoints.push(lineData.from, lineData.to);
+        launchProjectile(lineData.from, lineData.to);
     });
 });
 
@@ -80,7 +81,7 @@ function launchProjectile(from, to) {
         y: from.y,
         targetX: to.x,
         targetY: to.y,
-        speed: 0.1, // скорость (0.1 означает 10% пути за кадр)
+        speed: 0.1,
         done: false
     });
 }
@@ -138,7 +139,7 @@ function initGame(socket) {
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist < 5) {
-                proj.done = true; // остановить, если близко к цели
+                proj.done = true;
             } else {
                 proj.x += dx * proj.speed;
                 proj.y += dy * proj.speed;
@@ -156,13 +157,14 @@ function initGame(socket) {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        selectedPoints.push({ x, y });
+        tempSelectedPoints.push({ x, y });
+        drawnPoints.push({ x, y }); // === ДОБАВЛЯЕМ ТОЧКУ СРАЗУ ===
 
-        if (selectedPoints.length === 2) {
-            const lineData = { from: selectedPoints[0], to: selectedPoints[1], playerId };
+        if (tempSelectedPoints.length === 2) {
+            const lineData = { from: tempSelectedPoints[0], to: tempSelectedPoints[1], playerId };
             socket.emit('drawLine', lineData);
             console.log("Отправлено событие drawLine:", lineData);
-            selectedPoints = []; // сброс точек
+            tempSelectedPoints = []; // сброс временных точек
         }
     });
 
@@ -183,14 +185,14 @@ function draw() {
     // Рисуем линии
     lines.forEach((line) => {
         ctx.beginPath();
-        ctx.strokeStyle = '#FF0000';
+        ctx.strokeStyle = '#000000'; // === ЧЁРНАЯ ЛИНИЯ ===
         ctx.lineWidth = 3;
         ctx.moveTo(line.from.x, line.from.y);
         ctx.lineTo(line.to.x, line.to.y);
         ctx.stroke();
     });
 
-    // Рисуем точки
+    // Рисуем точки (включая временные)
     drawnPoints.forEach(point => {
         ctx.beginPath();
         ctx.fillStyle = '#000000'; // чёрный цвет
@@ -201,10 +203,10 @@ function draw() {
     // Рисуем снаряды (иконки)
     projectiles.forEach(proj => {
         if (!proj.done && itemIcon.complete) {
-            // Размер иконки
-            const size = 30;
-            // Рисуем иконку так, чтобы её **нижний край** был на линии
-            ctx.drawImage(itemIcon, proj.x - size / 2, proj.y - size, size, size);
+            // === Рисуем иконку с оригинальным разрешением ===
+            const width = itemIcon.width;
+            const height = itemIcon.height;
+            ctx.drawImage(itemIcon, proj.x - width / 2, proj.y - height, width, height);
         }
     });
 }
@@ -216,11 +218,11 @@ function selectItem(element) {
 
     if (itemId === 'item1') {
         console.log("Выбран предмет: item1 — режим выбора двух точек");
-        selectedPoints = [];
+        tempSelectedPoints = []; // сброс при выборе
         alert("Кликните два раза на поле, чтобы провести линию.");
     } else {
         console.log("Выбран другой предмет:", itemId);
         selectedItem = null;
-        selectedPoints = [];
+        tempSelectedPoints = [];
     }
 }
